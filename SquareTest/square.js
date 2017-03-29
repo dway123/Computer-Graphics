@@ -2,6 +2,8 @@
 
 var canvas;
 var gl;
+var vertices;
+var delay = 0;
 
 window.onload = function init()
 {
@@ -20,7 +22,7 @@ window.onload = function init()
     var program = initShaders(gl, "vertex-shader", "fragment-shader");
     gl.useProgram(program);
 
-    var vertices = [
+    vertices = [
         vec2(-1, -1),
         vec2(-1, 1),
         vec2(1, 1),
@@ -44,6 +46,8 @@ window.onload = function init()
 
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
-    window.requestAnimFrame(render);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, vertices.length);   //POINTS, LINE_STRIP, LINE_LOOP, LINES, TRIANGLE_STRIP, TRIANGLE_FAN, TRIANGLES, QUAD_STRIP, QUADS, and POLYGON
+    setTimeout(
+        function (){requestAnimFrame(render);}, delay
+    );
 }
