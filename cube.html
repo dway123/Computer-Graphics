@@ -16,7 +16,7 @@ uniform mat4 projectionMatrix;
 
 void main(){
     fColor = vColor;
-    gl_Position = projectionMatrix * modelViewMatrix * rotationMatrix * vPosition;
+    gl_Position = projectionMatrix * modelViewMatrix * vPosition;
     gl_Position.z = -gl_Position.z;
 }
 </script>

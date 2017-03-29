@@ -22,7 +22,7 @@ const orthoTop = 5; 	//to be used for left/right/top/bottom
 
 //Cube Variables
 var NumVertices  = 36;
-const cubePadding = .1;
+
 const cubeHalfSize = 1;
 
 var points = [];
@@ -36,7 +36,7 @@ var axis = 0;
 var rotationSign = 1;	//1 for positive, -1 for negative
 var rotationSpeed = 1;
 var anglesRotated = 0;
-var theta = [ 0, 0, 0 ];
+var theta = [0, 0, 0];
 
 //transformation matrices
 var _rotationMatrix; 
@@ -44,40 +44,60 @@ var _modelViewMatrix;
 var _projectionMatrix;
 
 const baseCubeVertices = [			//these vertices define unit cube, from which all other cubes are generated
-    vec4( -0.5, -0.5,  0.5, 1.0 ),	//0
-    vec4( -0.5,  0.5,  0.5, 1.0 ),	//1
-    vec4(  0.5,  0.5,  0.5, 1.0 ),	//2
-    vec4(  0.5, -0.5,  0.5, 1.0 ),	//3
-    vec4( -0.5, -0.5, -0.5, 1.0 ),	//4
-    vec4( -0.5,  0.5, -0.5, 1.0 ),	//5
-    vec4(  0.5,  0.5, -0.5, 1.0 ),	//6
-    vec4(  0.5, -0.5, -0.5, 1.0 )	//7
+    vec4(-0.5, -0.5,  0.5, 1.0),	//0
+    vec4(-0.5,  0.5,  0.5, 1.0),	//1
+    vec4( 0.5,  0.5,  0.5, 1.0),	//2
+    vec4( 0.5, -0.5,  0.5, 1.0),	//3
+    vec4(-0.5, -0.5, -0.5, 1.0),	//4
+    vec4(-0.5,  0.5, -0.5, 1.0),	//5
+    vec4( 0.5,  0.5, -0.5, 1.0),	//6
+    vec4( 0.5, -0.5, -0.5, 1.0)	//7
 ];
 
 const vertexColors = [
-    [ 34/255, 139/255,  34/255,  1.0 ], // green
-    [ 215/255, 215/255, 0/255,   1.0 ], // yellow
-    [ 255/255, 0/255,   0/255,   1.0 ], // red
-    [ 0/255,   0/255,   205/255, 1.0 ], // blue
-    [ 255/255, 255/255, 255/255, 1.0 ], // white
-    [ 255/255, 102/255, 0/255,   1.0 ]  // orange
+    [34/255, 139/255,  34/255,  1.0], // green
+    [215/255, 215/255, 0/255,   1.0], // yellow
+    [255/255, 0/255,   0/255,   1.0], // red
+    [0/255,   0/255,   205/255, 1.0], // blue
+    [255/255, 255/255, 255/255, 1.0], // white
+    [255/255, 102/255, 0/255,   1.0]  // orange
 ];
 
 //Cubie function! 27 cubies in the rubik's cube
-function Cubie(i, j, k, leftColor, rightColor, upColor, downColor, frontColor, backColor, modelMatrix){
+function Cubie(i, j, k, leftColor, rightColor, upColor, downColor, frontColor, backColor){
+	const cubePadding = .1;
 	this.i = i;						//ith index cubie from furthest left on x axis
 	this.j = j;						//jth index cubie from furthest bottom on y axis
 	this.k = k;						//kth index cubie from furthest front on z axis
+	this.ownTheta = [0,0,0];		//rotation of cubie about it's origin (likely shouldn't change)
+	this.scale = [1,1,1];			//scaling of cubie about it's origin (likely shouldn't change)
+	this.rubiksCubeTheta = [0,0,0];	//rotation of cubie about origin of rubik's cube. Used for rotating faces
+
 	this.leftColor = leftColor;		//color of left plane
 	this.rightColor = rightColor;	//color of right plane
 	this.upColor = upColor;			//...
 	this.downColor = downColor;
 	this.frontColor = frontColor;
 	this.backColor = backColor;		//color of back plane
-	this.modelMatrix = modelMatrix;	//translation matrix to transform from base cube to this cubie
+	
+
+	this.getModelMatrix = function(){
+		var translationMatrix = translate(i + Math.sign(i) * cubePadding, j + Math.sign(j) * cubePadding, k + Math.sign(k) * cubePadding);
+        var ownRotationMatrix = transpose(mult(rotateX(this.ownTheta[xAxis]), mult(rotateY(this.ownTheta[yAxis]), rotateZ(this.ownTheta[zAxis]))));
+        var scaleMatrix = scalem(this.scale[0], this.scale[1], this.scale[2]);
+        var cubieModelMatrix = mult(translationMatrix , mult(ownRotationMatrix, scaleMatrix));
+        
+        var rubiksCubeRotationMatrix = transpose(mult(rotateX(this.rubiksCubeTheta[xAxis]), mult(rotateY(this.rubiksCubeTheta[yAxis]), rotateZ(this.rubiksCubeTheta[zAxis]))));
+        var overallModelMatrix = mult(rubiksCubeRotationMatrix, cubieModelMatrix);
+        return overallModelMatrix;
+	}
 }
 
-var cubies = [];
+function RubiksCube(){
+	this.cubies = [];
+}
+
+var RCube = new RubiksCube();
 
 window.onload = function init()
 {
@@ -134,11 +154,6 @@ function initCubies(){
 	for(var i = -1; i <= 1; i++){
         for(var j = -1; j <= 1; j++){
             for(var k = -1; k <= 1; k++){
-                var translationMatrix = translate(i + Math.sign(i) * cubePadding, j + Math.sign(j) * cubePadding, k + Math.sign(k) * cubePadding);
-                var rotationMatrix = mat4();
-                var scaleMatrix = mat4();
-                var modelMatrix = mult(translationMatrix , mult(rotationMatrix, scaleMatrix));
-
                 var newCubie = new Cubie(
                 	i, 
                 	j, 
@@ -148,10 +163,9 @@ function initCubies(){
                 	vertexColors[2],
                 	vertexColors[3],
                 	vertexColors[4],
-                	vertexColors[5],
-                	modelMatrix
-                )
-                cubies.push(newCubie);
+                	vertexColors[5]
+                );
+                RCube.cubies.push(newCubie);
             }
         }
     }
@@ -248,14 +262,21 @@ function render()
     projectionMatrix = ortho(-orthoTop, orthoTop, -orthoTop, orthoTop, near, far);
 
     //set gl projection and rotation matrices, which don't change between cubies yet
-    gl.uniformMatrix4fv(_projectionMatrix, false, flatten(projectionMatrix));
-    gl.uniformMatrix4fv(_rotationMatrix, false, flatten(rotationMatrix));
+    gl.uniformMatrix4fv(_projectionMatrix, false, flatten(projectionMatrix));	//TODO: allow moving closer/further from camera by changing this every render?
+    gl.uniformMatrix4fv(_rotationMatrix, false, flatten(rotationMatrix));		
 
-    cubies.forEach(function(cubie){
-    	modelViewMatrix = mult(viewMatrix, cubie.modelMatrix);
-    	
+    var i = 0;
+    RCube.cubies.forEach(function(cubie){
+    	if(i % 2 == 0){
+    		cubie.rubiksCubeTheta = theta;
+    	}
+    	else{
+    		cubie.ownTheta = theta;
+    	}
+		i++;
+
+    	modelViewMatrix = mult(viewMatrix, cubie.getModelMatrix());
         gl.uniformMatrix4fv(_modelViewMatrix, false, flatten(modelViewMatrix));
-        
         gl.drawArrays(gl.TRIANGLES, 0, NumVertices);  
 
     });
