@@ -63,18 +63,21 @@ const vertexColors = [
     [ 255/255, 102/255, 0/255,   1.0 ]  // orange
 ];
 
-function Cubie(ox, oy, oz, lc, rc, uc, dc, fc, bc, mm){
-	this.x = ox;
-	this.y = oy;
-	this.z = oz;
-	this.leftColor = lc;
-	this.rightColor = rc;
-	this.upColor = uc;
-	this.downColor = dc;
-	this.frontColor = fc;
-	this.backColor = bc;
-	this.modelMatrix = mm;
+//Cubie function! 27 cubies in the rubik's cube
+function Cubie(i, j, k, leftColor, rightColor, upColor, downColor, frontColor, backColor, modelMatrix){
+	this.i = i;						//ith index cubie from furthest left on x axis
+	this.j = j;						//jth index cubie from furthest bottom on y axis
+	this.k = k;						//kth index cubie from furthest front on z axis
+	this.leftColor = leftColor;		//color of left plane
+	this.rightColor = rightColor;	//color of right plane
+	this.upColor = upColor;			//...
+	this.downColor = downColor;
+	this.frontColor = frontColor;
+	this.backColor = backColor;		//color of back plane
+	this.modelMatrix = modelMatrix;	//translation matrix to transform from base cube to this cubie
 }
+
+var cubies = [];
 
 window.onload = function init()
 {
@@ -122,7 +125,36 @@ window.onload = function init()
 
     eventListenerSetup();
 
+    initCubies();
+
     render();
+}
+
+function initCubies(){
+	for(var i = -1; i <= 1; i++){
+        for(var j = -1; j <= 1; j++){
+            for(var k = -1; k <= 1; k++){
+                var translationMatrix = translate(i + Math.sign(i) * cubePadding, j + Math.sign(j) * cubePadding, k + Math.sign(k) * cubePadding);
+                var rotationMatrix = mat4();
+                var scaleMatrix = mat4();
+                var modelMatrix = mult(translationMatrix , mult(rotationMatrix, scaleMatrix));
+
+                var newCubie = new Cubie(
+                	i, 
+                	j, 
+                	k, 
+                	vertexColors[0], 
+                	vertexColors[1], 
+                	vertexColors[2],
+                	vertexColors[3],
+                	vertexColors[4],
+                	vertexColors[5],
+                	modelMatrix
+                )
+                cubies.push(newCubie);
+            }
+        }
+    }
 }
 
 function eventListenerSetup(){
@@ -208,22 +240,25 @@ function render()
     }
     colorCube();
 
+
     var rotationMatrix, modelViewMatrix, projectionMatrix;
     rotationMatrix = transpose(mult(rotateX(theta[xAxis]), mult(rotateY(theta[yAxis]), rotateZ(theta[zAxis]))));
-    var lookAtMatrix = lookAt(eye, at, up);
+    var viewMatrix = lookAt(eye, at, up);
     //projectionMatrix = perspective(fovy, aspect, near, far);
     projectionMatrix = ortho(-orthoTop, orthoTop, -orthoTop, orthoTop, near, far);
-    for(var i = -1; i <= 1; i++){
-        for(var j = -1; j <= 1; j++){
-            for(var k = -1; k <= 1; k++){
-                modelViewMatrix = mult(lookAtMatrix, translate(i + Math.sign(i) * cubePadding, j + Math.sign(j) * cubePadding, k + Math.sign(k) * cubePadding));
 
-                gl.uniformMatrix4fv(_rotationMatrix, false, flatten(rotationMatrix));
-                gl.uniformMatrix4fv(_modelViewMatrix, false, flatten(modelViewMatrix));
-                gl.uniformMatrix4fv(_projectionMatrix, false, flatten(projectionMatrix));
-                gl.drawArrays(gl.TRIANGLES, 0, NumVertices);               
-            }
-        }
-    }
+    //set gl projection and rotation matrices, which don't change between cubies yet
+    gl.uniformMatrix4fv(_projectionMatrix, false, flatten(projectionMatrix));
+    gl.uniformMatrix4fv(_rotationMatrix, false, flatten(rotationMatrix));
+
+    cubies.forEach(function(cubie){
+    	modelViewMatrix = mult(viewMatrix, cubie.modelMatrix);
+    	
+        gl.uniformMatrix4fv(_modelViewMatrix, false, flatten(modelViewMatrix));
+        
+        gl.drawArrays(gl.TRIANGLES, 0, NumVertices);  
+
+    });
+
     requestAnimFrame( render );
 }
