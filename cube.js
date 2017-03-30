@@ -58,12 +58,9 @@ const vertexColors = [
 function Cubie(i, j, k){
 	const cubePadding = .1;
 	this.location = vec4(i, j, k, 1.0);			//ith/jth/kth index cubie from furthest left/bottom/front on x/y/z axis (changes per rotation)
-	this.originalLocation = vec3(i, j, k, 1.0);	//original values for i, j, and k in solved rubik's cube
+	const originalLocation = vec3(i, j, k, 1.0);	//original values for i, j, and k in solved rubik's cube
 	this.theta = [0,0,0];						//rotation of cubie about origin of rubik's cube. Used for rotating faces
-	this.thetaBeforeRotation = [0,0,0];			//TODO: MOVE THIS. thetaBeforeRotation represents theta of rubik's cube cubie before rotation begins. 
-												//angles after are determined by thetaBeforeRotation - theta
-												//and used to move this.location to new updated points
-	
+	var previousRotationMatrix = mat4();
 
 	function getRotationMatrix(theta){
 		return mult(rotateZ(theta[zAxis]), mult(rotateY(theta[yAxis]), rotateX(theta[xAxis])))
@@ -71,31 +68,22 @@ function Cubie(i, j, k){
 
 	this.getModelMatrix = function(){
 		var translationMatrix = translate(i + Math.sign(i) * cubePadding, j + Math.sign(j) * cubePadding, k + Math.sign(k) * cubePadding);        
-        var rubiksCubeRotationMatrix = getRotationMatrix(this.theta);
-        var overallModelMatrix = mult(rubiksCubeRotationMatrix, translationMatrix);
+        var rotationMatrix = mult(getRotationMatrix(this.theta), previousRotationMatrix);
+        var overallModelMatrix = mult(rotationMatrix, translationMatrix);
         return overallModelMatrix;
-	}
-
-
-	//stores thetaBeforeRotation to be used for updateLocation after rotation
-	this.storePreRotationState = function(){
-		this.thetaBeforeRotation = this.theta.slice(0);
 	}
 
 	//post rotation update location for future rotations, and store all previous rotation matrices' results
 	this.updateLocation = function(axis, direction){
-		var dTheta = [];
-		for(var i = 0; i < this.theta.length; i++){
-			dTheta.push(this.theta[i] - this.thetaBeforeRotation[i]);
-		}
-		var rotationMatrix = getRotationMatrix(dTheta);
-		console.log("before: " + this.location);
-		//console.log("dtheta: " + dTheta);
+		var rotationMatrix = getRotationMatrix(this.theta);
+
+		previousRotationMatrix = mult(rotationMatrix, previousRotationMatrix);
 		this.location = mult(rotationMatrix,this.location);
+
 		for(var i = 0; i < this.location.length; i++){
 			this.location[i] = Math.round(this.location[i]);
 		}
-		console.log("after: " + this.location);
+		this.theta = [0,0,0];
 	}
 }
 
@@ -139,7 +127,7 @@ function Rotation(){
 		speed = newSpeed;
 	}
 
-	this.rotateCube = function(ax, s, loc){
+	this.rotateCube = function(ax, s, p){
 		if(!isRotating()){
 			anglesRotated = 0;
 			if(ax === xAxis || ax === yAxis || ax === zAxis){
@@ -154,15 +142,12 @@ function Rotation(){
 			else{
 				alert("ERROR: invalid rotation sign! Must be +1 or -1");
 			}
-			if(loc === -1 || loc === 0 || loc === 1){
-				plane = loc;
+			if(p === -1 || p === 0 || p === 1){
+				plane = p;
 			}
 			else{
 				alert("ERROR: invalid rotation location! Must be -1, 0, or 1");
 			}
-			rCube.cubies.forEach(function(cubie){
-				cubie.storePreRotationState();
-			})
 		}
 	}
 
