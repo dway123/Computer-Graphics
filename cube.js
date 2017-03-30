@@ -139,7 +139,7 @@ function Rotation(){
 		speed = newSpeed;
 	}
 
-	this.rotateCube = function(ax, sign, loc){
+	this.rotateCube = function(ax, s, loc){
 		if(!isRotating()){
 			anglesRotated = 0;
 			if(ax === xAxis || ax === yAxis || ax === zAxis){
@@ -148,8 +148,8 @@ function Rotation(){
 			else{
 				alert("ERROR: Invalid Axis! Must be 0, 1, or 2");
 			}
-			if(sign === 1 || sign === -1){
-				sign = sign;
+			if(s === 1 || s === -1){
+				sign = s;
 			}
 			else{
 				alert("ERROR: invalid rotation sign! Must be +1 or -1");
