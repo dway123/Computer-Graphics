@@ -116,11 +116,11 @@ function Rotation(){
 	var anglesRotated = 90;	//how much of the rotation is complete. It is complete at >= 90, starts at 0
 	var speed = 10;			//how many angles to rotate per iteration
 
-	var rotationList = [];		//TODO: Implement dat async rotation stuff so that one can queue up 50 random rotations
-	var currentRotationIndex = 0;
+	var rotationQueue = [];		//TODO: Implement dat async rotation stuff so that one can queue up 50 random rotations
+	var completedRotations = [];
 
 	function isRotating(){
-		return (anglesRotated < 90);
+		return (anglesRotated <= 90);
 	}
 
 	function cleanUp(){
@@ -135,8 +135,21 @@ function Rotation(){
 		speed = newSpeed;
 	}
 
+	this.randomRotation = function(){
+		var axis = getRandomInt(xAxis,zAxis);
+		var sign = getRandomInt(0,1);
+		if(sign === 0){sign = -1;}
+		var plane = getRandomInt(-1,1)
+		this.queueRotation(axis, sign, plane);
+	}
+
+	this.randomRotations = function(n){
+		for(var i = 0; i < n; i++){
+			this.randomRotation();
+		}
+	}
+
 	this.queueRotation = function(ax,s,p){
-		if(isRotating()){return;}	//disable for asynchronous operation
 		if(ax !== xAxis && ax !== yAxis && ax !== zAxis){
 			alert("ERROR: Invalid Axis! Must be 0, 1, or 2");
 		}
@@ -147,44 +160,43 @@ function Rotation(){
 			alert("ERROR: invalid rotation location! Must be -1, 0, or 1");
 		}
 		var rotation = [ax,s,p];
-		rotationList.push(rotation);
+		rotationQueue.push(rotation);
 
-		//fix this too to make it async. Not using the list for now
-		this.begin(rotation[0], rotation[1], rotation[2]);
+		this.beginNextRotation();
 	}
 
-	this.begin = function(ax, s, p){
-		if(!isRotating()){
-			anglesRotated = 0;
-			axis = ax;
-			sign = s;
-			plane = p;
-		}
-	}
+	this.beginNextRotation = function(){
+		if(rotationQueue.length === 0){return;}	//no rotations available
+		if(anglesRotated < 90){return;}			//don't begin next rotation until current one completes
 
-	this.randomRotation = function(){
-		var axis = getRandomInt(xAxis,zAxis);
-		var sign = getRandomInt(0,1);
-		if(sign === 0){sign = -1;}
-		var plane = getRandomInt(-1,1)
-		console.log(axis, sign, plane);
-		this.queueRotation(axis, sign, plane);
+		anglesRotated = 0;
+		var nextRotation = rotationQueue.shift();
+
+		axis = nextRotation[0];
+		sign = nextRotation[1];
+		plane = nextRotation[2];
 	}
 
 	this.try = function(){
+		anglesRotated = anglesRotated + speed;
 		if(isRotating()){
 			rCube.cubies.forEach(function(cubie){
 				if(cubie.location[axis] == plane){
-		    		cubie.theta[axis] += speed * sign;
+		    		cubie.theta[axis] = cubie.theta[axis] + speed * sign;
+		    		if(cubie.theta[axis] > 90){
+		    			cubie.theta[axis] = 90;
+		    		}
+		    		if(cubie.theta[axis] < -90){
+		    			cubie.theta[axis] = -90;
+		    		}
 		    	}
 			});
 		}
 		if(anglesRotated === 90){
 			cleanUp();
+			this.beginNextRotation()
 		}
-		if(anglesRotated <=90){
-			anglesRotated = anglesRotated + speed;
-		}
+		
 	}
 }
 
@@ -310,7 +322,8 @@ function eventListenerSetup(){
     };
 
     document.getElementById("randomMoveButton").onclick = function () {
-        rotation.randomRotation();
+        var randomMoveAmount = document.getElementById("randomMoveAmount").value;
+        rotation.randomRotations(parseInt(randomMoveAmount));
     };
 
     var slider = document.getElementById("slider").onchange = function(event) {
