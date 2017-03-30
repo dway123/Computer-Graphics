@@ -54,6 +54,11 @@ const vertexColors = [
     [255/255, 102/255, 0/255,   1.0]  // orange
 ];
 
+//Source: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 //Cubie function! 27 cubies in the rubik's cube
 function Cubie(i, j, k){
 	const cubePadding = .1;
@@ -111,8 +116,11 @@ function Rotation(){
 	var anglesRotated = 90;	//how much of the rotation is complete. It is complete at >= 90, starts at 0
 	var speed = 10;			//how many angles to rotate per iteration
 
+	var rotationQueue = [];		//TODO: Implement dat async rotation stuff so that one can queue up 50 random rotations
+	var completedRotations = [];
+
 	function isRotating(){
-		return (anglesRotated < 90);
+		return (anglesRotated <= 90);
 	}
 
 	function cleanUp(){
@@ -127,44 +135,68 @@ function Rotation(){
 		speed = newSpeed;
 	}
 
-	this.rotateCube = function(ax, s, p){
-		if(!isRotating()){
-			anglesRotated = 0;
-			if(ax === xAxis || ax === yAxis || ax === zAxis){
-				axis = ax;
-			}
-			else{
-				alert("ERROR: Invalid Axis! Must be 0, 1, or 2");
-			}
-			if(s === 1 || s === -1){
-				sign = s;
-			}
-			else{
-				alert("ERROR: invalid rotation sign! Must be +1 or -1");
-			}
-			if(p === -1 || p === 0 || p === 1){
-				plane = p;
-			}
-			else{
-				alert("ERROR: invalid rotation location! Must be -1, 0, or 1");
-			}
+	this.randomRotation = function(){
+		var axis = getRandomInt(xAxis,zAxis);
+		var sign = getRandomInt(0,1);
+		if(sign === 0){sign = -1;}
+		var plane = getRandomInt(-1,1)
+		this.queueRotation(axis, sign, plane);
+	}
+
+	this.randomRotations = function(n){
+		for(var i = 0; i < n; i++){
+			this.randomRotation();
 		}
 	}
 
+	this.queueRotation = function(ax,s,p){
+		if(ax !== xAxis && ax !== yAxis && ax !== zAxis){
+			alert("ERROR: Invalid Axis! Must be 0, 1, or 2");
+		}
+		if(s !== 1 && s !== -1){
+			alert("ERROR: invalid rotation sign! Must be +1 or -1");
+		}
+		if(p !== -1 && p !== 0 && p !== 1){
+			alert("ERROR: invalid rotation location! Must be -1, 0, or 1");
+		}
+		var rotation = [ax,s,p];
+		rotationQueue.push(rotation);
+
+		this.beginNextRotation();
+	}
+
+	this.beginNextRotation = function(){
+		if(rotationQueue.length === 0){return;}	//no rotations available
+		if(anglesRotated < 90){return;}			//don't begin next rotation until current one completes
+
+		anglesRotated = 0;
+		var nextRotation = rotationQueue.shift();
+
+		axis = nextRotation[0];
+		sign = nextRotation[1];
+		plane = nextRotation[2];
+	}
+
 	this.try = function(){
+		anglesRotated = anglesRotated + speed;
 		if(isRotating()){
 			rCube.cubies.forEach(function(cubie){
 				if(cubie.location[axis] == plane){
-		    		cubie.theta[axis] += speed * sign;
+		    		cubie.theta[axis] = cubie.theta[axis] + speed * sign;
+		    		if(cubie.theta[axis] > 90){
+		    			cubie.theta[axis] = 90;
+		    		}
+		    		if(cubie.theta[axis] < -90){
+		    			cubie.theta[axis] = -90;
+		    		}
 		    	}
 			});
 		}
 		if(anglesRotated === 90){
 			cleanUp();
+			this.beginNextRotation()
 		}
-		if(anglesRotated <=90){
-			anglesRotated = anglesRotated + speed;
-		}
+		
 	}
 }
 
@@ -225,68 +257,73 @@ window.onload = function init()
 function eventListenerSetup(){
 	//left/middle/right
 	document.getElementById("lButton").onclick = function () {
-        rotation.rotateCube(xAxis, 1, -1);
+        rotation.queueRotation(xAxis, 1, -1);
     };
     document.getElementById("mButton").onclick = function () {
-        rotation.rotateCube(xAxis, 1, 0);
+        rotation.queueRotation(xAxis, 1, 0);
     };
     document.getElementById("rButton").onclick = function () {
-        rotation.rotateCube(xAxis, -1, 1);
+        rotation.queueRotation(xAxis, -1, 1);
     };
 
     //up/e/down
     document.getElementById("uButton").onclick = function () {
-        rotation.rotateCube(yAxis, -1, 1);
+        rotation.queueRotation(yAxis, -1, 1);
     };
     document.getElementById("eButton").onclick = function () {
-        rotation.rotateCube(yAxis, -1, 0);
+        rotation.queueRotation(yAxis, -1, 0);
     };
     document.getElementById("dButton").onclick = function () {
-        rotation.rotateCube(yAxis, 1, -1);
+        rotation.queueRotation(yAxis, 1, -1);
     };
 
     //front/slice/back
     document.getElementById("fButton").onclick = function () {
-        rotation.rotateCube(zAxis, 1, -1);
+        rotation.queueRotation(zAxis, 1, -1);
     };
     document.getElementById("sButton").onclick = function () {
-        rotation.rotateCube(zAxis, 1, 0);
+        rotation.queueRotation(zAxis, 1, 0);
     };
     document.getElementById("bButton").onclick = function () {
-        rotation.rotateCube(zAxis, -1, 1);
+        rotation.queueRotation(zAxis, -1, 1);
     };
 
     //left/middle/right transpose
     document.getElementById("ltButton").onclick = function () {
-        rotation.rotateCube(xAxis, -1, -1);
+        rotation.queueRotation(xAxis, -1, -1);
     };
     document.getElementById("mtButton").onclick = function () {
-        rotation.rotateCube(xAxis, -1, 0);
+        rotation.queueRotation(xAxis, -1, 0);
     };
     document.getElementById("rtButton").onclick = function () {
-        rotation.rotateCube(xAxis, 1, 1);
+        rotation.queueRotation(xAxis, 1, 1);
     };
 
     //up/e/down
     document.getElementById("utButton").onclick = function () {
-        rotation.rotateCube(yAxis, 1, 1);
+        rotation.queueRotation(yAxis, 1, 1);
     };
     document.getElementById("etButton").onclick = function () {
-        rotation.rotateCube(yAxis, 1, 0);
+        rotation.queueRotation(yAxis, 1, 0);
     };
     document.getElementById("dtButton").onclick = function () {
-        rotation.rotateCube(yAxis, -1, -1);
+        rotation.queueRotation(yAxis, -1, -1);
     };
 
     //front/slice/back transpose
     document.getElementById("ftButton").onclick = function () {
-        rotation.rotateCube(zAxis, -1, -1);
+        rotation.queueRotation(zAxis, -1, -1);
     };
     document.getElementById("stButton").onclick = function () {
-        rotation.rotateCube(zAxis, -1, 0);
+        rotation.queueRotation(zAxis, -1, 0);
     };
     document.getElementById("btButton").onclick = function () {
-        rotation.rotateCube(zAxis, 1, 1);
+        rotation.queueRotation(zAxis, 1, 1);
+    };
+
+    document.getElementById("randomMoveButton").onclick = function () {
+        var randomMoveAmount = document.getElementById("randomMoveAmount").value;
+        rotation.randomRotations(parseInt(randomMoveAmount));
     };
 
     var slider = document.getElementById("slider").onchange = function(event) {
