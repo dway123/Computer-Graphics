@@ -18,7 +18,7 @@ const near = 1;		//plane where near = -z, to denote closest plane from objects
 const far = 100;	//plane where far = -z, to denote furthest plane from objects
 
 //ortho() Parameters (near and far reused)
-const orthoTop = 5; //to be used for left/right/top/bottom
+const orthoTop = 3; //to be used for left/right/top/bottom
 
 //Cube Variables
 const NumVertices  = 36;
@@ -62,9 +62,9 @@ function getRandomInt(min, max) {
 //Cubie function! 27 cubies in the rubik's cube
 function Cubie(i, j, k){
 	const cubePadding = .1;
-	this.location = vec4(i, j, k, 1.0);			//ith/jth/kth index cubie from furthest left/bottom/front on x/y/z axis (changes per rotation)
+	this.location = vec4(i, j, k, 1.0);				//ith/jth/kth index cubie from furthest left/bottom/front on x/y/z axis (changes per rotation)
 	const originalLocation = vec3(i, j, k, 1.0);	//original values for i, j, and k in solved rubik's cube
-	this.theta = [0,0,0];						//rotation of cubie about origin of rubik's cube. Used for rotating faces
+	this.theta = [0,0,0];							//rotation of cubie about origin of rubik's cube. Used for rotating faces
 	var previousRotationMatrix = mat4();
 
 	function getRotationMatrix(theta){
@@ -79,7 +79,7 @@ function Cubie(i, j, k){
 	}
 
 	//post rotation update location for future rotations, and store all previous rotation matrices' results
-	this.updateLocation = function(axis, direction){
+	this.updateLocation = function(){
 		var rotationMatrix = getRotationMatrix(this.theta);
 
 		previousRotationMatrix = mult(rotationMatrix, previousRotationMatrix);
@@ -120,10 +120,10 @@ function Rotation(){
 	var completedRotations = [];
 
 	function isRotating(){
-		return (anglesRotated <= 90);
+		return (anglesRotated - speed < 90);
 	}
 
-	function cleanUp(){
+	function cleanUpCubies(){
 		rCube.cubies.forEach(function(cubie){
 			if(cubie.location[axis] == plane){
 				cubie.updateLocation();
@@ -144,6 +144,12 @@ function Rotation(){
 	}
 
 	this.randomRotations = function(n){
+		if(rotationQueue.length + n > 9000){
+			alert("Wow! There would be over 9000 rotations! We couldn't possibly make you wait for so long :o. Please try again or with a smaller amount of rotations"); return;
+		}
+		if(!(parseInt(n) > 0)){
+			alert("Please select a positive nonzero integer! Thanks!"); return;
+		}
 		for(var i = 0; i < n; i++){
 			this.randomRotation();
 		}
@@ -159,6 +165,9 @@ function Rotation(){
 		if(p !== -1 && p !== 0 && p !== 1){
 			alert("ERROR: invalid rotation location! Must be -1, 0, or 1");
 		}
+		if(rotationQueue.length > 9000){
+			alert("Wow! There's over 9000 rotations waiting in the queue. Please wait before submitting more rotations. Thanks!"); return;
+		}
 		var rotation = [ax,s,p];
 		rotationQueue.push(rotation);
 
@@ -167,7 +176,7 @@ function Rotation(){
 
 	this.beginNextRotation = function(){
 		if(rotationQueue.length === 0){return;}	//no rotations available
-		if(anglesRotated < 90){return;}			//don't begin next rotation until current one completes
+		if(isRotating()){return;}//don't begin next rotation until current one completes
 
 		anglesRotated = 0;
 		var nextRotation = rotationQueue.shift();
@@ -175,10 +184,11 @@ function Rotation(){
 		axis = nextRotation[0];
 		sign = nextRotation[1];
 		plane = nextRotation[2];
+		console.log(rotationQueue.length + " rotations remaining. Began: " + nextRotation);
 	}
 
 	this.try = function(){
-		anglesRotated = anglesRotated + speed;
+		anglesRotated += speed;
 		if(isRotating()){
 			rCube.cubies.forEach(function(cubie){
 				if(cubie.location[axis] == plane){
@@ -192,11 +202,10 @@ function Rotation(){
 		    	}
 			});
 		}
-		if(anglesRotated === 90){
-			cleanUp();
-			this.beginNextRotation()
+		if(anglesRotated >= 90 && anglesRotated < 90 + speed * 2){
+			cleanUpCubies();
+			this.beginNextRotation();
 		}
-		
 	}
 }
 
@@ -216,7 +225,7 @@ window.onload = function init()
     colorCube();
 
     gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(1.0, 1.0 , 1.0, 1.0);
+    gl.clearColor(200/255, 200/255 , 200/255, 1.0);
 
     gl.enable(gl.DEPTH_TEST);	//depth visualization
     // gl.enable(gl.CULL_FACE);	//cull faces
@@ -252,6 +261,61 @@ window.onload = function init()
     rCube.initCubies();
 
     render();
+}
+
+/*
+KEY MAPPINGS TO MOVES:
+q -> L, w -> M, e -> R
+a -> U, s -> E, d -> D
+z -> F, x -> S, c -> B
+Shift + keys = inverse rotation (ex. Shift + q -> L')
+*/
+
+var shiftKeyPressed = false
+function keyDownHandler(e){
+	function mapShiftToDirection(){
+		if(shiftKeyPressed){return -1;}
+		return 1;
+	}
+	if(e.keyCode == 16){
+		shiftKeyPressed = true;
+	}
+
+	if(e.keyCode == 81){	//q maps to L, shift + q maps to L'
+		rotation.queueRotation(xAxis, 1 * mapShiftToDirection(), -1);
+	}
+	else if(e.keyCode == 87){//w maps to M, shift + w maps to M'
+		rotation.queueRotation(xAxis, 1 * mapShiftToDirection(), 0);
+	}
+	else if(e.keyCode == 69){//e maps to R, shift + e maps to R'
+		rotation.queueRotation(xAxis, -1 * mapShiftToDirection(), 1);
+	}
+
+	if(e.keyCode == 65){	//a maps to U, shift + a maps to U'
+		rotation.queueRotation(yAxis, -1 * mapShiftToDirection(), 1);
+	}
+	else if(e.keyCode == 83){//s maps to E, shift + s maps to E'
+		rotation.queueRotation(yAxis, -1 * mapShiftToDirection(), 0);
+	}
+	else if(e.keyCode == 68){//d maps to D, shift + d maps to D'
+		rotation.queueRotation(yAxis, 1 * mapShiftToDirection(), -1);
+	}
+
+	if(e.keyCode == 90){	//z maps to F, shift + z maps to F'
+		rotation.queueRotation(zAxis, 1 * mapShiftToDirection(), -1);
+	}
+	else if(e.keyCode == 88){//x maps to S, shift + x maps t S'
+		rotation.queueRotation(zAxis, 1 * mapShiftToDirection(), 0);
+	}
+	else if(e.keyCode == 67){//c maps to B, shift + c maps to B'
+		rotation.queueRotation(zAxis, -1 * mapShiftToDirection(), 1);
+	}
+}
+
+function keyUpHandler(e){
+	if(e.keyCode == 16){
+		shiftKeyPressed = false;
+	}
 }
 
 function eventListenerSetup(){
@@ -329,6 +393,9 @@ function eventListenerSetup(){
     var slider = document.getElementById("slider").onchange = function(event) {
         rotation.setspeed(parseInt(event.target.value));
     };
+
+    document.addEventListener("keydown", keyDownHandler, false);
+    document.addEventListener("keyup", keyUpHandler, false);
 }
 
 function colorCube()
