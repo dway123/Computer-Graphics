@@ -10,7 +10,6 @@ attribute  vec4 vPosition;
 attribute  vec4 vColor;
 varying vec4 fColor;
 
-uniform mat4 rotationMatrix;
 uniform mat4 modelViewMatrix;
 uniform mat4 projectionMatrix;
 
@@ -47,12 +46,37 @@ Oops ... your browser doesn't support the HTML5 canvas element
 
 <br/>
 
-<button id= "pxButton">Rotate +X</button>
-<button id= "nxButton">Rotate -X</button>
-<button id= "pyButton">Rotate +Y</button>
-<button id= "nyButton">Rotate -Y</button>
+<button id= "lButton">L</button>
+<button id= "mButton">M</button>
+<button id= "rButton">R</button>
+
+<button id= "uButton">U</button>
+<button id= "eButton">E</button>
+<button id= "dButton">D</button>
+
+<button id= "fButton">F</button>
+<button id= "sButton">S</button>
+<button id= "bButton">B</button>
+
+<br/>
+
+<button id= "ltButton">L'</button>
+<button id= "mtButton">M'</button>
+<button id= "rtButton">R'</button>
+
+<button id= "utButton">U'</button>
+<button id= "etButton">E'</button>
+<button id= "dtButton">D'</button>
+
+<button id= "ftButton">F'</button>
+<button id= "stButton">S'</button>
+<button id= "btButton">B'</button>
+
+<br/>
+
+<!-- <button id= "nyButton">Rotate -Y</button>
 <button id= "pzButton">Rotate +Z</button>
-<button id= "nzButton">Rotate -Z</button>
+<button id= "nzButton">Rotate -Z</button> -->
 <div>
 rotation speed  1 
 <input id="slider" type="range"
