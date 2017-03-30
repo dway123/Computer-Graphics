@@ -14,16 +14,14 @@ const up = vec3(0.0, 1.0, 0.0);		//orientation of camera, where up is above the 
 //perspective() Parameters
 const fovy = 45.0;	//Field of View Angle in y direction
 const aspect = 1.0;	//aspect ratio between x and y
-const near = 1;	//plane where near = -z, to denote closest plane from objects
+const near = 1;		//plane where near = -z, to denote closest plane from objects
 const far = 100;	//plane where far = -z, to denote furthest plane from objects
 
 //ortho() Parameters (near and far reused)
-const orthoTop = 5; 	//to be used for left/right/top/bottom
+const orthoTop = 5; //to be used for left/right/top/bottom
 
 //Cube Variables
-var NumVertices  = 36;
-
-const cubeHalfSize = 1;
+const NumVertices  = 36;
 
 var points = [];
 var colors = [];
@@ -65,28 +63,45 @@ const vertexColors = [
 //Cubie function! 27 cubies in the rubik's cube
 function Cubie(i, j, k){
 	const cubePadding = .1;
-	this.location = vec4(i,j,k,1.0);		//ith/jth/kth index cubie from furthest left/bottom/front on x/y/z axis (changes per rotation)
-	this.originalLocation = vec3(i,j,k,1.0);//original values for i, j, and k in solved rubik's cube
-	this.ownTheta = [0,0,0];			//rotation of cubie about it's origin (likely shouldn't change)
-	this.scale = [1,1,1];				//scaling of cubie about it's origin (likely shouldn't change)
-	this.rubiksCubeTheta = [0,0,0];		//rotation of cubie about origin of rubik's cube. Used for rotating faces
+	this.location = vec4(i, j, k, 1.0);			//ith/jth/kth index cubie from furthest left/bottom/front on x/y/z axis (changes per rotation)
+	this.originalLocation = vec3(i, j, k, 1.0);	//original values for i, j, and k in solved rubik's cube
+	this.theta = [0,0,0];						//rotation of cubie about origin of rubik's cube. Used for rotating faces
+	this.thetaBeforeRotation = [0,0,0];			//TODO: MOVE THIS. thetaBeforeRotation represents theta of rubik's cube cubie before rotation begins. 
+												//angles after are determined by thetaBeforeRotation - theta
+												//and used to move this.location to new updated points
+
+	// var temp = mat4();
+
+	function rotation(theta){
+		return mult(rotateZ(theta[zAxis]), mult(rotateY(theta[yAxis]), rotateX(theta[xAxis])))
+	}
 
 	this.getModelMatrix = function(){
-		var translationMatrix = translate(i + Math.sign(i) * cubePadding, j + Math.sign(j) * cubePadding, k + Math.sign(k) * cubePadding);
-        var ownRotationMatrix = transpose(mult(rotateX(this.ownTheta[xAxis]), mult(rotateY(this.ownTheta[yAxis]), rotateZ(this.ownTheta[zAxis]))));
-        var scaleMatrix = scalem(this.scale[0], this.scale[1], this.scale[2]);
-        var cubieModelMatrix = mult(translationMatrix , mult(ownRotationMatrix, scaleMatrix));
-        
-        var rubiksCubeRotationMatrix = transpose(mult(rotateX(this.rubiksCubeTheta[xAxis]), mult(rotateY(this.rubiksCubeTheta[yAxis]), rotateZ(this.rubiksCubeTheta[zAxis]))));
-        var overallModelMatrix = mult(rubiksCubeRotationMatrix, cubieModelMatrix);
+		var translationMatrix = translate(i + Math.sign(i) * cubePadding, j + Math.sign(j) * cubePadding, k + Math.sign(k) * cubePadding);        
+        var rubiksCubeRotationMatrix = rotation(this.theta);
+        //var rubiksCubeRotationMatrix = temp;
+        var overallModelMatrix = mult(rubiksCubeRotationMatrix, translationMatrix);
         return overallModelMatrix;
 	}
 
+
+	//stores thetaBeforeRotation to be used for updateLocation after rotation
+	this.storePreRotationState = function(){
+		this.thetaBeforeRotation = this.theta.slice(0);
+	}
+
 	this.updateLocation = function(axis, direction){
-		var rotationMatrix = rotateX(90);
-		console.log(this.location);
+		var dTheta = [];
+		for(var i = 0; i < this.theta.length; i++){
+			dTheta.push(this.theta[i] - this.thetaBeforeRotation[i]);	//NOTE: seems like I have a sign error somewhere (else?), because this does in fact work but theoretically it should be inverted...
+		}
+		var rotationMatrix = mult(rotateZ(dTheta[zAxis]), mult(rotateY(dTheta[yAxis]), rotateX(dTheta[xAxis])));
+		console.log("before: " + this.location);
 		this.location = mult(rotationMatrix,this.location);
-		console.log(this.location);
+		for(var i = 0; i < this.location.length; i++){
+			this.location[i] = Math.round(this.location[i]);
+		}
+		console.log("after: " + this.location);
 	}
 }
 
@@ -162,13 +177,13 @@ window.onload = function init()
 function eventListenerSetup(){
 	//left/middle/right
 	document.getElementById("lButton").onclick = function () {
-        rotateCube(xAxis, -1, -1);
+        rotateCube(xAxis, 1, -1);
     };
     document.getElementById("mButton").onclick = function () {
-        rotateCube(xAxis, -1, 0);
+        rotateCube(xAxis, 1, 0);
     };
     document.getElementById("rButton").onclick = function () {
-        rotateCube(xAxis, 1, 1);
+        rotateCube(xAxis, -1, 1);
     };
 
     //up/e/down
@@ -184,24 +199,24 @@ function eventListenerSetup(){
 
     //front/slice/back
     document.getElementById("fButton").onclick = function () {
-        rotateCube(zAxis, -1, -1);
+        rotateCube(zAxis, 1, -1);
     };
     document.getElementById("sButton").onclick = function () {
-        rotateCube(zAxis, -1, 0);
+        rotateCube(zAxis, 1, 0);
     };
     document.getElementById("bButton").onclick = function () {
-        rotateCube(zAxis, 1, 1);
+        rotateCube(zAxis, -1, 1);
     };
 
     //left/middle/right transpose
     document.getElementById("ltButton").onclick = function () {
-        rotateCube(xAxis, 1, -1);
+        rotateCube(xAxis, -1, -1);
     };
     document.getElementById("mtButton").onclick = function () {
-        rotateCube(xAxis, 1, 0);
+        rotateCube(xAxis, -1, 0);
     };
     document.getElementById("rtButton").onclick = function () {
-        rotateCube(xAxis, -1, 1);
+        rotateCube(xAxis, 1, 1);
     };
 
     //up/e/down
@@ -217,13 +232,13 @@ function eventListenerSetup(){
 
     //front/slice/back transpose
     document.getElementById("ftButton").onclick = function () {
-        rotateCube(zAxis, 1, -1);
+        rotateCube(zAxis, -1, -1);
     };
     document.getElementById("stButton").onclick = function () {
-        rotateCube(zAxis, 1, 0);
+        rotateCube(zAxis, -1, 0);
     };
     document.getElementById("btButton").onclick = function () {
-        rotateCube(zAxis, -1, 1);
+        rotateCube(zAxis, 1, 1);
     };
 
     var slider = document.getElementById("slider").onchange = function(event) {
@@ -257,6 +272,9 @@ function rotateCube(ax, sign, loc){
 		else{
 			alert("ERROR: invalid rotation location! Must be -1, 0, or 1");
 		}
+		rCube.cubies.forEach(function(cubie){
+			cubie.storePreRotationState();
+		});
 	}
 }
 
@@ -290,14 +308,14 @@ function render()
    if(!rotationComplete()){
     	rCube.cubies.forEach(function(cubie){
     		if(cubie.location[rotationAxis] == rotationLocation){
-	    		cubie.rubiksCubeTheta[rotationAxis] += rotationSpeed * rotationSign;
+	    		cubie.theta[rotationAxis] += rotationSpeed * rotationSign;
 	    	}
     	})
     }
     if(anglesRotated === 90){//just finished rotation
     	rCube.cubies.forEach(function(cubie){
     		if(cubie.location[rotationAxis] == rotationLocation){
-    			//if()
+    			cubie.updateLocation();
     		}
     	});
     }
@@ -305,7 +323,6 @@ function render()
  		anglesRotated += rotationSpeed;
 	}
     colorCube();
-
 
     var modelViewMatrix, projectionMatrix;
     var viewMatrix = lookAt(eye, at, up);
