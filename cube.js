@@ -7,7 +7,6 @@ var gl;
 //ANIMATION SETUP
 // ModelViewMatrix Parameters
 //lookAt() Parameters
-const eye = vec3(-5, -5, 10.0);	//camera location
 const at = vec3(0.0, 0.0, 0.0);		//camera faces this location
 const up = vec3(0.0, 1.0, 0.0);		//orientation of camera, where up is above the camera
 
@@ -55,7 +54,7 @@ const vertexColors = [
 ];
 
 //objects
-var mouseManager = new MouseManager();
+var camera = new Camera();
 
 //Source: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
 function getRandomInt(min, max) {
@@ -258,7 +257,7 @@ window.onload = function init()
     _projectionMatrix = gl.getUniformLocation(program, "projectionMatrix");
 
     eventListenerSetup();
-    mouseManager.init(canvas);
+    camera.init(canvas);
 
     rCube.initCubies();
 
@@ -392,17 +391,27 @@ function eventListenerSetup(){
     document.addEventListener("keyup", keyUpHandler, false);
 }
 
-function MouseManager(){
+function Camera(){
+	const baseEye = vec4(-5, -5, 10.0, 0);		//camera location
+
 	var trackingMouse = false;
 	var oldX, oldY;
-	var curX, curY;
-	this.init = function(canvas){
+	var theta = [1,1,0];
+	var canvas;
+	this.cameraRadius = 10.0;
+
+	this.init = function(cvs){
+		canvas = cvs;
 		canvas.addEventListener("mousedown", beginTrackingMouse, false);
 		canvas.addEventListener("mouseup", stopTrackingMouse, false);
 		canvas.addEventListener("mouseout", stopTrackingMouse, false);
 
 		canvas.addEventListener("mousemove", mouseMove, false);
 		canvas.addEventListener("mousewheel", mouseWheel, false);
+	}
+
+	this.getTheta = function(){
+		return theta;
 	}
 
 	function beginTrackingMouse(e){
@@ -422,16 +431,29 @@ function MouseManager(){
 		var dx = e.pageX - oldX;
 		var dy = e.pageY - oldY;
 
-		//rotateCamera(dx, dy);
-
-		console.log(e.pageX + "," + e.pageY);
-
+		setCameraAngle(dx, dy);
 		oldX = e.pageX;
 		oldY = e.pageY;
 	}
 
 	function mouseWheel(e){
-		
+		console.log(e.wheelDelta);
+		//zoomCamera(e.wheelDelta)
+		e.preventDefault();
+	}
+
+	function setCameraAngle(dx, dy){
+		var absPhi = Math.abs(theta[0] % 360);
+		theta[0] -= (180 * dy/canvas.height) % 360;	//rotate about x axis to have y move
+		theta[1] -= (180 * dx/canvas.width) % 360;	//rotate about y axis to have x move
+	}
+
+	this.getViewMatrix = function(){
+	    var rotationMatrix = mult(rotateX(theta[0]), rotateY(theta[1]));	//to move camera to view of camera
+	    var eye4 = mult(rotationMatrix, baseEye);
+	    var eye3 = vec3(eye4[0], eye4[1], eye4[2]);							//eye after moving
+
+	    return lookAt(eye3, at, up);
 	}	
 }
 
@@ -466,7 +488,9 @@ function render()
     colorCube();
 
     var modelViewMatrix, projectionMatrix;
-    var viewMatrix = lookAt(eye, at, up);
+
+    var viewMatrix = camera.getViewMatrix();
+
     //projectionMatrix = perspective(fovy, aspect, near, far);
     projectionMatrix = ortho(-orthoTop, orthoTop, -orthoTop, orthoTop, near, far);
 
