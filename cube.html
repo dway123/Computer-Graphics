@@ -1,7 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>lol it's a cube</title>
+	<title>Rubik's Cube</title>
+
+	<!-- Table Formatting Source: https://www.w3schools.com/html/html_tables.asp -->
+	<style>
+		body{
+			font-family: arial, sans-serif;
+		}
+		table {
+		    font-family: arial, sans-serif;
+		    border-collapse: collapse;
+		    width: 100%;
+		}
+
+		td, th {
+		    border: 1px solid #dddddd;
+		    text-align: left;
+		    padding: 8px;
+		}
+
+		tr:nth-child(even) {
+		    background-color: #dddddd;
+		}
+	</style>
 </head>
 
 <script id="vertex-shader" type="x-shader/x-vertex">
@@ -74,15 +96,63 @@ Oops ... your browser doesn't support the HTML5 canvas element
 
 <br/>
 <div>
-rotation speed  1 
-<input id="slider" type="range"
- min= "1" max= "10" step = "1" value = "5" />
- 10
+Rotation Speed  1<input id="slider" type="range" min= "1" max= "20" step = "1" value = "10" />20
 </div>
-<br/>
-<div>Testing...</div>
-Amount of Random Moves: <input type="text" id="randomMoveAmount" value="10">
+
+Amount of Random Moves: <input type="text" id="randomMoveAmount" value="25">
 <button id= "randomMoveButton">Shuffle!</button>
+
+<br></br>
+
+<table>
+	<caption>Key Mappings</caption>
+	<tr>
+		<th>Keyboard</th>
+		<th>Command</th>
+	</tr>
+	<tr>
+		<td>q</td>
+		<td>L</td>
+	</tr>
+	<tr>
+    	<td>w</td>
+    	<td>M</td>
+   	</tr>
+   	<tr>
+    	<td>e</td>
+    	<td>R</td>
+   	</tr>
+
+   	<tr>
+    	<td>a</td>
+    	<td>U</td>
+   	</tr>
+   	<tr>
+    	<td>s</td>
+    	<td>E</td>
+   	</tr>
+   	<tr>
+    	<td>d</td>
+    	<td>D</td>
+   	</tr>
+
+   	<tr>
+    	<td>z</td>
+    	<td>F</td>
+   	</tr
+   	<tr>
+    	<td>x</td>
+    	<td>S</td>
+   	</tr>
+   	<tr>
+    	<td>c</td>
+    	<td>B</td>
+   	</tr>
+   	<tr>
+    	<td>SHIFT</td>
+    	<td>Invert Rotation</td>
+   	</tr>
+</table>
 
 </body>
 </html>
