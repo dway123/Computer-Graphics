@@ -54,6 +54,9 @@ const vertexColors = [
     [255/255, 102/255, 0/255,   1.0]  // orange
 ];
 
+//objects
+var mouseManager = new MouseManager();
+
 //Source: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -116,7 +119,7 @@ function Rotation(){
 	var anglesRotated = 90;	//how much of the rotation is complete. It is complete at >= 90, starts at 0
 	var speed = 10;			//how many angles to rotate per iteration
 
-	var rotationQueue = [];		//TODO: Implement dat async rotation stuff so that one can queue up 50 random rotations
+	var rotationQueue = [];
 	var completedRotations = [];
 
 	function isRotating(){
@@ -231,9 +234,7 @@ window.onload = function init()
     // gl.enable(gl.CULL_FACE);	//cull faces
     // gl.cullFace(gl.FRONT);
 
-    //
     //  Load shaders and initialize attribute buffers
-    //
     var program = initShaders( gl, "vertex-shader", "fragment-shader" );
     gl.useProgram(program);
 
@@ -257,21 +258,14 @@ window.onload = function init()
     _projectionMatrix = gl.getUniformLocation(program, "projectionMatrix");
 
     eventListenerSetup();
+    mouseManager.init(canvas);
 
     rCube.initCubies();
 
     render();
 }
 
-/*
-KEY MAPPINGS TO MOVES:
-q -> L, w -> M, e -> R
-a -> U, s -> E, d -> D
-z -> F, x -> S, c -> B
-Shift + keys = inverse rotation (ex. Shift + q -> L')
-*/
-
-var shiftKeyPressed = false
+var shiftKeyPressed = false;
 function keyDownHandler(e){
 	function mapShiftToDirection(){
 		if(shiftKeyPressed){return -1;}
@@ -396,6 +390,49 @@ function eventListenerSetup(){
 
     document.addEventListener("keydown", keyDownHandler, false);
     document.addEventListener("keyup", keyUpHandler, false);
+}
+
+function MouseManager(){
+	var trackingMouse = false;
+	var oldX, oldY;
+	var curX, curY;
+	this.init = function(canvas){
+		canvas.addEventListener("mousedown", beginTrackingMouse, false);
+		canvas.addEventListener("mouseup", stopTrackingMouse, false);
+		canvas.addEventListener("mouseout", stopTrackingMouse, false);
+
+		canvas.addEventListener("mousemove", mouseMove, false);
+		canvas.addEventListener("mousewheel", mouseWheel, false);
+	}
+
+	function beginTrackingMouse(e){
+		trackingMouse = true;
+		oldX = e.pageX;
+		oldY = e.pageY;
+		e.preventDefault();	//Prevents being highlighted when double-clicked on desktop, scrolling on mobile
+	}
+
+	function stopTrackingMouse(e){
+		trackingMouse = false;
+	}
+
+	function mouseMove(e){
+		if(!trackingMouse){return;}
+
+		var dx = e.pageX - oldX;
+		var dy = e.pageY - oldY;
+
+		//rotateCamera(dx, dy);
+
+		console.log(e.pageX + "," + e.pageY);
+
+		oldX = e.pageX;
+		oldY = e.pageY;
+	}
+
+	function mouseWheel(e){
+		
+	}	
 }
 
 function colorCube()
