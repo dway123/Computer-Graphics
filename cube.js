@@ -13,7 +13,7 @@ const up = vec3(0.0, 1.0, 0.0);		//orientation of camera, where up is above the 
 //perspective() Parameters
 const fovy = 45.0;	//Field of View Angle in y direction
 const aspect = 1.0;	//aspect ratio between x and y
-const near = 1;		//plane where near = -z, to denote closest plane from objects
+const near = 0;		//plane where near = -z, to denote closest plane from objects
 const far = 100;	//plane where far = -z, to denote furthest plane from objects
 
 //ortho() Parameters (near and far reused)
@@ -392,13 +392,12 @@ function eventListenerSetup(){
 }
 
 function Camera(){
-	const baseEye = vec4(-5, -5, 10.0, 0);		//camera location
+	const baseEye = vec4(0, 0, 10, 0);		//camera location
 
 	var trackingMouse = false;
 	var oldX, oldY;
-	var theta = [1,1,0];
+	var theta = [-20,20,0];
 	var canvas;
-	this.cameraRadius = 10.0;
 
 	this.init = function(cvs){
 		canvas = cvs;
@@ -407,7 +406,6 @@ function Camera(){
 		canvas.addEventListener("mouseout", stopTrackingMouse, false);
 
 		canvas.addEventListener("mousemove", mouseMove, false);
-		canvas.addEventListener("mousewheel", mouseWheel, false);
 	}
 
 	this.getTheta = function(){
@@ -434,12 +432,6 @@ function Camera(){
 		setCameraAngle(dx, dy);
 		oldX = e.pageX;
 		oldY = e.pageY;
-	}
-
-	function mouseWheel(e){
-		console.log(e.wheelDelta);
-		//zoomCamera(e.wheelDelta)
-		e.preventDefault();
 	}
 
 	function setCameraAngle(dx, dy){
