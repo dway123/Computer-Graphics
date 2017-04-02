@@ -293,24 +293,6 @@ function keyDownHandler(e){
 	else if(e.keyCode == 67){//c maps to B, shift + c maps to B'
 		rotation.queueRotation(zAxis, -1 * mapShiftToDirection(), 1);
 	}
-
-	var arrowKeySensitivity = 2;
-	if(e.keyCode == 37){		//left
-		camera.setCameraAngle(-arrowKeySensitivity,0);
-		e.preventDefault();
-	}
-	else if(e.keyCode == 39){	//right
-		camera.setCameraAngle(arrowKeySensitivity,0);
-		e.preventDefault();
-	}
-	else if(e.keyCode == 38){	//up
-		camera.setCameraAngle(0,-arrowKeySensitivity);
-		e.preventDefault();
-	}
-	else if(e.keyCode == 40){	//down
-		camera.setCameraAngle(0,arrowKeySensitivity);
-		e.preventDefault();
-	}
 }
 
 function keyUpHandler(e){
@@ -401,23 +383,19 @@ function eventListenerSetup(){
 
 function Camera(){
 	//lookAt() Parameters
-	const baseEye = vec4(0, 0, 10, 0);	//camera location as a vec4, for mouse rotation
+	const eye = vec3(0, 0, 10);	//camera location as a vec4, for mouse rotation
 	const at = vec3(0.0, 0.0, 0.0);		//camera faces this location
-	var up = vec3(0.0, 1.0, 0.0);		//orientation of camera, where up is above the camera
+	const up = vec3(0.0, 1.0, 0.0);		//orientation of camera, where up is above the camera
 
 	var trackingMouse = false;
 	var oldX, oldY;
-	// var theta = [-20,20,0];
-	var theta = [0,0,0];
-	var canvas;
+	var theta = [20,-20,0];
 
 	this.init = function(cvs){
-		canvas = cvs;
-		canvas.addEventListener("mousedown", beginTrackingMouse, false);
-		canvas.addEventListener("mouseup", stopTrackingMouse, false);
-		canvas.addEventListener("mouseout", stopTrackingMouse, false);
-
-		canvas.addEventListener("mousemove", mouseMove, false);
+		cvs.addEventListener("mousedown", beginTrackingMouse, false);
+		cvs.addEventListener("mouseup", stopTrackingMouse, false);
+		cvs.addEventListener("mouseout", stopTrackingMouse, false);
+		cvs.addEventListener("mousemove", mouseMove, false);
 	}
 
 	this.getTheta = function(){
@@ -447,35 +425,18 @@ function Camera(){
 	}
 
 	function setCameraAngle(dx, dy){
-		var dir = [-1, -1]
+		var dir = [-1, -1];
 		if(theta[0] > 90 && theta[0] < 270){
-			up = vec3(0,-1,0);
-		}
-		else{
-			up = vec3(0,1,0);
-		}
-		if(theta[1] > 90 && theta[0] < 270){
-			dir[0] = 1;
-		}
-		else{
-			dir[0] = -1;
+			dir[1] = 1;
 		}
 
-		theta[0] = (theta[0] + (dir[0] * dy)) % 360;	//rotate about x axis to have y move
-		theta[1] = (theta[1] + (dir[1] * dx)) % 360;	//rotate about y axis to have x move
-
-		console.log("theta[0] = " + theta[0]);
-		console.log("theta[1] = " + theta[1]);
+		theta[0] = (theta[0] - (dir[0] * dy)) % 360;	//rotate about x axis to have y move
+		theta[1] = (theta[1] - (dir[1] * dx)) % 360;	//rotate about y axis to have x move
 	}
-
-	this.setCameraAngle = function(dx, dy){setCameraAngle(dx, dy);}
 
 	this.getViewMatrix = function(){
 	    var rotationMatrix = mult(rotateX(theta[0]), rotateY(theta[1]));	//to move camera to view of camera
-	    var eye4 = mult(rotationMatrix, baseEye);
-	    var eye3 = vec3(eye4[0], eye4[1], eye4[2]);							//eye after moving
-
-	    return lookAt(eye3, at, up);
+	    return mult(lookAt(eye, at, up), rotationMatrix);
 	}	
 }
 
