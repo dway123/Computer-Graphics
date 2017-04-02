@@ -1,13 +1,10 @@
+//Darwin Huang's Rubik's Cube assignment
+
 "use strict";
 
 //Program System Variables
 var canvas;
 var gl;
-
-//ortho() Parameters(near and far reused)
-const orthoTop = 3; //to be used for left/right/top/bottom
-const near = 0;		//plane where near = -z, to denote closest plane from objects
-const far = 100;	//plane where far = -z, to denote furthest plane from objects
 
 //Cube Variables
 const NumVertices  = 36;
@@ -44,7 +41,11 @@ const vertexColors = [
 ];
 
 //objects
+var rCube = new RubiksCube();
+var rotation = new Rotation();
 var camera = new Camera();
+var projector = new Projector();
+
 
 //Source: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
 function getRandomInt(min, max) {
@@ -57,24 +58,37 @@ function Cubie(i, j, k){
 	this.location = vec4(i, j, k, 1.0);				//ith/jth/kth index cubie from furthest left/bottom/front on x/y/z axis (changes per rotation)
 	const originalLocation = vec3(i, j, k, 1.0);	//original values for i, j, and k in solved rubik's cube
 	this.theta = [0,0,0];							//rotation of cubie about origin of rubik's cube. Used for rotating faces
-	var previousRotationMatrix = mat4();
+	this.previousRotationMatrix = mat4();
 
+	//returns generalized rotation matrix in all axis
 	function getRotationMatrix(theta){
 		return mult(rotateZ(theta[zAxis]), mult(rotateY(theta[yAxis]), rotateX(theta[xAxis])))
 	}
 
+	//rounds all values in a matrix, so that quantization errors are squelched temporarily. Useful for equality checks where 0 != 2.723e-26
+	function getRoundedMatrix(m){
+		var newM = mat4();
+		for(var i = 0; i < m.length; i++){
+			for(var j = 0; j < m[0].length; j++){
+				newM[i][j] = Math.round(m[i][j]);
+			}
+		}
+		return newM;
+	}
+
+	//returns matrix representing translations and rotations of the cubie, from a unit cube to it's position on the Rubik's cube overall
 	this.getModelMatrix = function(){
 		var translationMatrix = translate(i + Math.sign(i) * cubePadding, j + Math.sign(j) * cubePadding, k + Math.sign(k) * cubePadding);        
-        var rotationMatrix = mult(getRotationMatrix(this.theta), previousRotationMatrix);
+        var rotationMatrix = mult(getRotationMatrix(this.theta), this.previousRotationMatrix);
         var overallModelMatrix = mult(rotationMatrix, translationMatrix);
         return overallModelMatrix;
 	}
 
 	//post rotation update location for future rotations, and store all previous rotation matrices' results
-	this.updateLocation = function(){
+	this.postRotationCleanUp = function(){
 		var rotationMatrix = getRotationMatrix(this.theta);
 
-		previousRotationMatrix = mult(rotationMatrix, previousRotationMatrix);
+		this.previousRotationMatrix = getRoundedMatrix(mult(rotationMatrix, this.previousRotationMatrix));
 		this.location = mult(rotationMatrix,this.location);
 
 		for(var i = 0; i < this.location.length; i++){
@@ -87,7 +101,8 @@ function Cubie(i, j, k){
 function RubiksCube(){
 	this.cubies = [];
 
-	this.initCubies = function(){
+	//populates this.cubies
+	this.init = function(){
 		for(var i = -1; i <= 1; i++){
 	        for(var j = -1; j <= 1; j++){
 	            for(var k = -1; k <= 1; k++){
@@ -97,9 +112,19 @@ function RubiksCube(){
 	        }
 	    }
 	}
-}
 
-var rCube = new RubiksCube();
+	this.isSolved = function(){
+		var otherMatrix = mat4();
+		var rotationMatrix = this.cubies[0].previousRotationMatrix;
+		for(var i = 1; i < this.cubies.length; i++){
+			otherMatrix = this.cubies[i].previousRotationMatrix;
+			if(!equal(otherMatrix, rotationMatrix)){
+				return false;
+			}
+		}
+		return true;
+	}
+}
 
 function Rotation(){
 	var axis;				//axis which the current rotation is about (0, 1, or 2)/(xaxis,yaxis, or zaxis)
@@ -109,7 +134,7 @@ function Rotation(){
 	var speed = 10;			//how many angles to rotate per iteration
 
 	var rotationQueue = [];
-	var completedRotations = [];
+	this.completedRotations = [];
 
 	function isRotating(){
 		return (anglesRotated - speed < 90);
@@ -118,12 +143,12 @@ function Rotation(){
 	function cleanUpCubies(){
 		rCube.cubies.forEach(function(cubie){
 			if(cubie.location[axis] == plane){
-				cubie.updateLocation();
+				cubie.postRotationCleanUp();
 			}
 		});
 	}
 
-	this.setspeed = function(newSpeed){
+	this.setSpeed = function(newSpeed){
 		speed = newSpeed;
 	}
 
@@ -176,10 +201,13 @@ function Rotation(){
 		axis = nextRotation[0];
 		sign = nextRotation[1];
 		plane = nextRotation[2];
+
+		this.completedRotations.push(nextRotation);
+
 		console.log(rotationQueue.length + " rotations remaining. Began: " + nextRotation);
 	}
 
-	this.try = function(){
+	this.tryRotate = function(){
 		anglesRotated += speed;
 		if(isRotating()){
 			rCube.cubies.forEach(function(cubie){
@@ -196,12 +224,41 @@ function Rotation(){
 		}
 		if(anglesRotated >= 90 && anglesRotated < 90 + speed * 2){
 			cleanUpCubies();
+			var text;
+			if(rCube.isSolved()){
+				text = "Congratulations! The Rubik's Cube is solved!"
+			}
+			else{
+				text = "Rubik's Cube. Good luck!";
+			}
+			document.getElementById("solvedDisplay").innerHTML = text;
+
 			this.beginNextRotation();
 		}
 	}
 }
 
-var rotation = new Rotation();
+function colorCube()
+{
+    quad(1, 0, 3, 2);	//+z front face 	//red
+    quad(2, 3, 7, 6);	//+x right face 	//yellow
+    quad(3, 0, 4, 7);	//-y bottom face 	//green
+    quad(4, 5, 6, 7);	//-z back face 		//blue
+    quad(5, 4, 0, 1);	//-x left face 		//magenta
+    quad(6, 5, 1, 2); 	//+y top face 		//cyan
+}
+
+// Parition quad into two triangles from quad indices
+function quad(a, b, c, d)
+{
+    //vertex color assigned by the index of the vertex
+    var indices = [ a, b, c, a, c, d ];
+    for (var i = 0; i < indices.length; ++i) {
+        points.push(baseCubeVertices[indices[i]]);
+        // for solid colored faces use
+        colors.push(vertexColors[a - 1]);
+    }
+}
 
 window.onload = function init()
 {
@@ -220,8 +277,6 @@ window.onload = function init()
     gl.clearColor(200/255, 200/255 , 200/255, 1.0);
 
     gl.enable(gl.DEPTH_TEST);	//depth visualization
-    // gl.enable(gl.CULL_FACE);	//cull faces
-    // gl.cullFace(gl.FRONT);
 
     //  Load shaders and initialize attribute buffers
     var program = initShaders( gl, "vertex-shader", "fragment-shader" );
@@ -247,9 +302,11 @@ window.onload = function init()
     _projectionMatrix = gl.getUniformLocation(program, "projectionMatrix");
 
     eventListenerSetup();
-    camera.init(canvas);
 
-    rCube.initCubies();
+    //initialize objects
+    camera.init(canvas);
+    projector.init(canvas);
+    rCube.init();    
 
     render();
 }
@@ -374,7 +431,7 @@ function eventListenerSetup(){
     };
 
     var slider = document.getElementById("slider").onchange = function(event) {
-        rotation.setspeed(parseInt(event.target.value));
+        rotation.setSpeed(parseInt(event.target.value * 100 / 90));	//map slider's 0 to 100 values to 0 to 90 degrees per rotation
     };
 
     document.addEventListener("keydown", keyDownHandler, false);
@@ -383,7 +440,7 @@ function eventListenerSetup(){
 
 function Camera(){
 	//lookAt() Parameters
-	const eye = vec3(0, 0, 10);	//camera location as a vec4, for mouse rotation
+	const eye = vec3(0, 0, 10);			//camera location as a vec4, for mouse rotation
 	const at = vec3(0.0, 0.0, 0.0);		//camera faces this location
 	const up = vec3(0.0, 1.0, 0.0);		//orientation of camera, where up is above the camera
 
@@ -396,10 +453,6 @@ function Camera(){
 		cvs.addEventListener("mouseup", stopTrackingMouse, false);
 		cvs.addEventListener("mouseout", stopTrackingMouse, false);
 		cvs.addEventListener("mousemove", mouseMove, false);
-	}
-
-	this.getTheta = function(){
-		return theta;
 	}
 
 	function beginTrackingMouse(e){
@@ -440,26 +493,31 @@ function Camera(){
 	}	
 }
 
-function colorCube()
-{
-    quad(1, 0, 3, 2);	//+z front face 	//red
-    quad(2, 3, 7, 6);	//+x right face 	//yellow
-    quad(3, 0, 4, 7);	//-y bottom face 	//green
-    quad(4, 5, 6, 7);	//-z back face 		//blue
-    quad(5, 4, 0, 1);	//-x left face 		//magenta
-    quad(6, 5, 1, 2); 	//+y top face 		//cyan
-}
+function Projector(){
+	var top = 3; //to be used for left/right/top/bottom
+	const maxTop = 10;
+	const minTop = 2;
+	const near = 0;		//plane where near = -z, to denote closest plane from objects
+	const far = 100;	//plane where far = -z, to denote furthest plane from objects
 
-// Parition quad into two triangles from quad indices
-function quad(a, b, c, d)
-{
-    //vertex color assigned by the index of the vertex
-    var indices = [ a, b, c, a, c, d ];
-    for (var i = 0; i < indices.length; ++i) {
-        points.push(baseCubeVertices[indices[i]]);
-        // for solid colored faces use
-        colors.push(vertexColors[a - 1]);
-    }
+	this.init = function(cvs){
+		cvs.addEventListener("mousewheel", zoom, false);
+	}
+
+	//zooming in and out via mouse wheel, as constrained by maxTop and minTop
+	function zoom(e){
+		if(e.wheelDelta < 0){
+			top = Math.min(1.05 * top, maxTop);
+		}
+		else{
+			top = Math.max(0.95 * top, minTop);
+		}
+		e.preventDefault();
+	}
+
+	this.getProjectionMatrix = function(){
+		return ortho(-top, top, -top, top, near, far);
+	}
 }
 
 function render()
@@ -467,17 +525,13 @@ function render()
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     
     //during rotation, rotate all relevant cubies, as noted by their location 
-   	rotation.try();
-    colorCube();
+   	rotation.tryRotate();
 
-    var modelViewMatrix, projectionMatrix;
-
-    var viewMatrix = camera.getViewMatrix();
-    projectionMatrix = ortho(-orthoTop, orthoTop, -orthoTop, orthoTop, near, far);
+    var projectionMatrix = projector.getProjectionMatrix();
     gl.uniformMatrix4fv(_projectionMatrix, false, flatten(projectionMatrix));
 
     rCube.cubies.forEach(function(cubie){
-    	modelViewMatrix = mult(viewMatrix, cubie.getModelMatrix());
+    	var modelViewMatrix = mult(camera.getViewMatrix(), cubie.getModelMatrix());
         gl.uniformMatrix4fv(_modelViewMatrix, false, flatten(modelViewMatrix));
         gl.drawArrays(gl.TRIANGLES, 0, NumVertices);  
     });

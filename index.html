@@ -68,6 +68,8 @@ Oops ... your browser doesn't support the HTML5 canvas element
 
 <br/>
 
+<div id="solvedDisplay">Rubik's Cube</div>
+
 <button id= "lButton">L</button>
 <button id= "mButton">M</button>
 <button id= "rButton">R</button>
@@ -96,7 +98,7 @@ Oops ... your browser doesn't support the HTML5 canvas element
 
 <br/>
 <div>
-Rotation Speed  1<input id="slider" type="range" min= "1" max= "20" step = "1" value = "10" />20
+Rotation Speed  1<input id="slider" type="range" min= "1" max= "100" step = "1" value = "10" />100
 </div>
 
 Amount of Random Moves: <input type="text" id="randomMoveAmount" value="25">
@@ -105,9 +107,9 @@ Amount of Random Moves: <input type="text" id="randomMoveAmount" value="25">
 <br></br>
 
 <table>
-	<caption>Key Mappings</caption>
+	<caption>Mappings</caption>
 	<tr>
-		<th>Keyboard</th>
+		<th>Mouse/Keyboard</th>
 		<th>Command</th>
 	</tr>
 	<tr>
@@ -152,6 +154,10 @@ Amount of Random Moves: <input type="text" id="randomMoveAmount" value="25">
     	<td>SHIFT</td>
     	<td>Invert Rotation</td>
    	</tr>
+    <tr>
+      <td>Mouse Click & Drag</td>
+      <td>Move Camera</td>
+    </tr>
 </table>
 
 </body>
