@@ -16,6 +16,9 @@ const xAxis = 0;
 const yAxis = 1;
 const zAxis = 2;
 
+	var saveFile = null;	//text file with save info
+
+
 //transformation matrices
 var _modelViewMatrix;
 var _projectionMatrix;
@@ -45,7 +48,7 @@ var rCube = new RubiksCube();
 var rotation = new Rotation();
 var camera = new Camera();
 var projector = new Projector();
-
+var fileManager = new FileManager();
 
 //Source: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
 function getRandomInt(min, max) {
@@ -56,7 +59,6 @@ function getRandomInt(min, max) {
 function Cubie(i, j, k){
 	const cubePadding = .1;
 	this.location = vec4(i, j, k, 1.0);				//ith/jth/kth index cubie from furthest left/bottom/front on x/y/z axis (changes per rotation)
-	const originalLocation = vec3(i, j, k, 1.0);	//original values for i, j, and k in solved rubik's cube
 	this.theta = [0,0,0];							//rotation of cubie about origin of rubik's cube. Used for rotating faces
 	this.previousRotationMatrix = mat4();
 
@@ -430,12 +432,76 @@ function eventListenerSetup(){
         rotation.randomRotations(parseInt(randomMoveAmount));
     };
 
-    var slider = document.getElementById("slider").onchange = function(event) {
+    document.getElementById("slider").onchange = function(event) {
         rotation.setSpeed(parseInt(event.target.value * 100 / 90));	//map slider's 0 to 100 values to 0 to 90 degrees per rotation
     };
 
+    document.getElementById("saveButton").onclick = function(e){
+    	var link = document.getElementById("downloadLink");
+    	link.href = fileManager.saveFileAs();
+    }
+
+    document.getElementById("selectFile").addEventListener("change", function(e){
+    	fileManager.selectFile(e);
+    });
+
+    document.getElementById("selectFile").onclick = function(){
+    	this.value = null;
+    	fileManager.setFileLoaded(false);
+    }
+
+    document.getElementById("loadButton").onclick = function(){
+    	fileManager.loadFile();
+    }
+
     document.addEventListener("keydown", keyDownHandler, false);
     document.addEventListener("keyup", keyUpHandler, false);
+}
+
+function FileManager(){
+	var fileLoaded;
+	var fileContents;
+
+	//create a new text file and assign to the saveFile
+	function createNewTextFile(text){
+		var data = new Blob([JSON.stringify(text)], {type: 'text/plain'});
+		if(saveFile !== null){
+			window.URL.revokeObjectURL(saveFile);
+		}
+		saveFile = window.URL.createObjectURL(data);
+	}
+
+	this.saveFileAs = function(link){
+		var saveData = [rCube, rotation];
+		createNewTextFile(saveData);
+		return saveFile;
+	}
+
+	this.selectFile = function(e){
+		var file = e.target.files[0];	//choose first available file from FileList
+		var reader = new FileReader();
+
+		reader.onload = function(e){
+			fileContents = JSON.parse(reader.result);	//JSON text data
+			fileLoaded = true;
+			console.log(fileContents);
+		}
+		reader.readAsText(file);
+	}
+
+	this.setFileLoaded = function(bool){
+		fileLoaded = bool;
+	}
+
+	this.loadFile = function(){
+		if(!fileLoaded){
+			alert("No save file was selected! Please first select a save file.");
+		}
+		else{
+			rCube = fileContents[0];
+			rotation = fileContents[1];
+		}
+	}
 }
 
 function Camera(){
