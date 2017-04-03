@@ -31,13 +31,14 @@ const baseCubeVertices = [			//these vertices define unit cube, from which all o
     vec4( 0.5, -0.5, -0.5, 1.0)		//7
 ];
 
+//Reference: Material Design color scheme from http://htmlcolorcodes.com/color-chart/
 const vertexColors = [
-    [34/255, 139/255,  34/255,  1.0], // green
-    [215/255, 215/255, 0/255,   1.0], // yellow
-    [255/255, 0/255,   0/255,   1.0], // red
-    [0/255,   0/255,   205/255, 1.0], // blue
-    [255/255, 255/255, 255/255, 1.0], // white
-    [255/255, 102/255, 0/255,   1.0]  // orange
+    [230/255,  81/255,  10/255, 1.0], // orange
+	[255/255, 202/255,  40/255, 1.0], // yellow
+	[ 46/255, 125/255,  50/255, 1.0], // green
+	[183/255,  28/255,  28/255, 1.0], // red
+	[250/255, 250/255, 250/255, 1.0], // white
+	[ 40/255,  53/255, 147/255, 1.0]  // blue
 ];
 
 //objects
@@ -275,7 +276,7 @@ window.onload = function init()
     colorCube();
 
     gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(200/255, 200/255 , 200/255, 1.0);
+    gl.clearColor(189/255, 189/255 , 189/255, 1.0);
 
     gl.enable(gl.DEPTH_TEST);	//depth visualization
 
