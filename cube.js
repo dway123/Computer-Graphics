@@ -117,9 +117,12 @@ function RubiksCube(){
 		var otherMatrix = mat4();
 		var rotationMatrix = this.cubies[0].previousRotationMatrix;
 		for(var i = 1; i < this.cubies.length; i++){
-			otherMatrix = this.cubies[i].previousRotationMatrix;
-			if(!equal(otherMatrix, rotationMatrix)){
-				return false;
+			var isCenter = (this.cubies[i].location[0] == 0 && this.cubies[i].location[1] == 0 && this.cubies[i].location[2] === 0);
+			if(!isCenter){
+				otherMatrix = this.cubies[i].previousRotationMatrix;
+				if(!equal(otherMatrix, rotationMatrix)){
+					return false;
+				}
 			}
 		}
 		return true;
