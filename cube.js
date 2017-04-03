@@ -484,7 +484,6 @@ function FileManager(){
 		reader.onload = function(e){
 			fileContents = JSON.parse(reader.result);	//JSON text data
 			fileLoaded = true;
-			console.log(fileContents);
 		}
 		reader.readAsText(file);
 	}
@@ -496,10 +495,25 @@ function FileManager(){
 	this.loadFile = function(){
 		if(!fileLoaded){
 			alert("No save file was selected! Please first select a save file.");
+			return;
 		}
-		else{
-			rCube = fileContents[0];
-			rotation = fileContents[1];
+
+		//update game data as per load data
+		rotation.completedRotations = fileContents[1].completedRotations.slice();	//load completed rotations
+
+		for(var i = 0; i < fileContents[0].cubies.length; i++){	//iterate through each cubie
+		 	var location = fileContents[0].cubies[i].location;
+		 	rCube.cubies[i].location = vec4(location[0], location[1], location[2], location[3]);
+
+			//var theta = fileContents[0].cubies[i].theta;
+			//rCube.cubies[i].theta = theta;
+			rCube.cubies[i].theta = [0,0,0];					//location and previousRotationMatrix assume NOT mid rotation, so ignore theta unless we want what it looked like mid-rotation while saving
+
+			var m = fileContents[0].cubies[i].previousRotationMatrix;
+		 	rCube.cubies[i].previousRotationMatrix = mat4(m[0], m[1], m[2], m[3], 
+		 												  m[4], m[5], m[6], m[7],
+		 												  m[8], m[9], m[10], m[11],
+		 												  m[12], m[13], m[14], m[15]);
 		}
 	}
 }
