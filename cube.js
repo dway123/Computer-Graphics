@@ -16,9 +16,6 @@ const xAxis = 0;
 const yAxis = 1;
 const zAxis = 2;
 
-	var saveFile = null;	//text file with save info
-
-
 //transformation matrices
 var _modelViewMatrix;
 var _projectionMatrix;
@@ -101,10 +98,11 @@ function Cubie(i, j, k){
 }
 
 function RubiksCube(){
-	this.cubies = [];
+	this.cubies;
 
 	//populates this.cubies
 	this.init = function(){
+		this.cubies = [];
 		for(var i = -1; i <= 1; i++){
 	        for(var j = -1; j <= 1; j++){
 	            for(var k = -1; k <= 1; k++){
@@ -266,8 +264,6 @@ window.onload = function init()
 {
 	//canvas setup
     canvas = document.getElementById( "gl-canvas" );
-	//canvas.width = Math.min(window.innerHeight, window.innerWidth) - 60;	//canvas.width adjusted to match size window, while keeping the canvas square
-	//canvas.height = Math.min(window.innerHeight, window.innerWidth) - 60;	//padding of 60 px given for buttons to display within window
 
 	//webGL setup
     gl = WebGLUtils.setupWebGL( canvas );
@@ -459,15 +455,16 @@ function eventListenerSetup(){
 }
 
 function FileManager(){
+	var saveFile = null;	//text file with save info
 	var fileLoaded;
 	var fileContents;
 
 	//create a new text file and assign to the saveFile
 	function createNewTextFile(text){
-		var data = new Blob([JSON.stringify(text)], {type: 'text/plain'});
 		if(saveFile !== null){
 			window.URL.revokeObjectURL(saveFile);
 		}
+		var data = new Blob([JSON.stringify(text)], {type: 'text/plain'});
 		saveFile = window.URL.createObjectURL(data);
 	}
 
@@ -581,6 +578,7 @@ function Projector(){
 	const far = 100;	//plane where far = -z, to denote furthest plane from objects
 
 	this.init = function(cvs){
+		top = 3;
 		cvs.addEventListener("mousewheel", zoom, false);
 	}
 
